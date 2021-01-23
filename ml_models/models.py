@@ -5,6 +5,8 @@ All credits to Murtaza's Workshop
 https://www.youtube.com/watch?v=6CZiz-FLZF0
 I simply made PyCharm happier by removing typos
 """
+from typing import Optional
+
 import pandas as pd
 import numpy as np
 import logging
@@ -23,20 +25,23 @@ if __name__ == "__main__":
 logger = logging.getLogger("ml_models-predict")
 
 
-def predict_model(name: str = "OWID_WRL", key: str = "total_cases"):
+def predict_model(model_data: Optional[pd.DataFrame] = None, key: str = "total_cases", days: int = 28, *,
+                  just_last: bool = False):
     # load data
-    logger.info("Loading CSV...")
-    data = pd.read_csv(f"../data_sources/{'world' if name == 'OWID_WRL' else name.upper()}_data.csv")
-    data = data[["index", key]]
+    if model_data is None:
+        model_data = pd.read_csv("../data_sources/world_data.csv")
+    data = model_data[["index", key]]
+    data.dropna(inplace=True)  # drop all rows with NaN values
 
     # prepare data
     logger.info("Preparing data...")
-    x = np.array(data[key]).reshape(-1, 1)
-    y = np.array(data["index"]).reshape(-1, 1)
+    x = np.array(data["index"]).reshape(-1, 1)
+    y = np.array(data[key]).reshape(-1, 1)
+    print(x, y)
 
     logger.info("Finding best feature...")
     max_accuracy = [0, 0]
-    for i in range(2, 10):
+    for i in range(2, 6):
         # prepare PolynomialFeature
         poly_feature = PolynomialFeatures(degree=i)
         a = poly_feature.fit_transform(x)
@@ -62,14 +67,15 @@ def predict_model(name: str = "OWID_WRL", key: str = "total_cases"):
 
     # prediction
     logger.info("Predicting...")
-    days = 28  # number of days to predict
     final_day = len(data["index"])  # last day in the dataset
-    # print(f"Cases after {days} days: {int(model.predict(poly_feature.fit_transform([[final_day + days]])))}")
 
     # return
-    x1 = np.array(list(range(1, final_day + days))).reshape(-1, 1)
-    y1 = model.predict(poly_feature.fit_transform(x1))
-    return y1
+    if just_last:
+        return int(model.predict(poly_feature.fit_transform([[final_day + days]])))
+    else:
+        x1 = np.array(list(range(1, final_day + days))).reshape(-1, 1)
+        y1 = model.predict(poly_feature.fit_transform(x1))
+        return y1
 
 
 if __name__ == "__main__":
