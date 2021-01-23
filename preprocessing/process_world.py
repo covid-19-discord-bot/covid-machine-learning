@@ -37,7 +37,7 @@ def process_data(name: str = "OWID_WRL") -> list:
 def process_world():
     world_data = process_data()
 
-    with open("../data_sources/world_data.csv", "w") as f:
+    with open("../data_sources/WRL_data.csv", "w") as f:
         data_writer = csv.writer(f)
         data_writer.writerows(world_data)
 
